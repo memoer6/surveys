@@ -1,0 +1,7 @@
+*.log
+src/main/resources/*.properties
+src/main/resources/service-account.json
+
+/.gradle/
+/bin/
+/build/

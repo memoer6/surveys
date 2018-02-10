@@ -18,7 +18,7 @@ import org.openqa.selenium.WebElement;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.memoer6.surveys.model.SurveyFields;
+import com.memoer6.surveys.model.SurveyInputs;
 
 
 public class WalmartEngine implements SurveyInterface {
@@ -27,15 +27,17 @@ public class WalmartEngine implements SurveyInterface {
 	
 	private final static int MIN_DELAY = 8;
 	private final static int MAX_DELAY = 12;
+	// Result of the survey. Success or Failed
+	private int result;
 	
 	
 	private WebDriver driver;
-	private SurveyFields surveyFields;
+	private SurveyInputs surveyInputs;
 	protected final static String NAME = "Walmart";
 	private final static String URL = "http://survey.walmart.ca/";
 	private final static List<String> starGroup = new ArrayList<> (
 			Arrays.asList("Q2", "Q3", "Q4", "Q4a", "Q9", "Q13", "Q17", "Q20",
-					"Q33", "Q37", "Q37d", "Q65", "Q75", "Q83", "Q98", "Q94"));
+					"Q33", "Q37", "Q37d", "Q65", "Q75", "Q81", "Q83", "Q98", "Q94"));
 	
 	//this creates a immutable and static hash map using the static initializer
 	//In java 9, it would be simpler (Map.of)
@@ -56,6 +58,7 @@ public class WalmartEngine implements SurveyInterface {
 		rowGroup.put("Q43", 3);
 		rowGroup.put("Q44", 1);
 		rowGroup.put("Q61", 0);
+		rowGroup.put("Q62", 96);
 		rowGroup.put("Q68", 1);
 		rowGroup.put("Q69", 10);
 		rowGroup.put("Q70", 1);
@@ -65,7 +68,7 @@ public class WalmartEngine implements SurveyInterface {
 		rowGroup.put("Q74", 0);
 		rowGroup.put("Q91", 1);
 		rowGroup.put("Q92", 1);
-		rowGroup.put("Q93", 1);
+		rowGroup.put("Q93", 1);		
 		rowGroup.put("Q98", 1);
 		rowGroup.put("Q99", 3);
 		rowGroup.put("ST4", 2);
@@ -100,39 +103,48 @@ public class WalmartEngine implements SurveyInterface {
 			
 	
 	@Override
-	public void fillSurvey(WebDriver webDriver, SurveyFields surveyFields) {
+	public int fillSurvey(WebDriver webDriver, SurveyInputs surveyInputs) {
 		
 		
 		this.driver = webDriver;
-		this.surveyFields = surveyFields;
+		this.surveyInputs = surveyInputs;
 		
 		//Implicit wait
 		//driver.manage().timeouts().implicitlyWait(10, TimeUnit.SECONDS);
 		
 		//Update answer for gender
-		int gender = surveyFields.getGender().equals("Male") ? 1 : 0; 
+		int gender = surveyInputs.getGender().equals("Male") ? 1 : 0; 
 		rowGroup.put("Q38", gender);
 		
 		driver.get(URL);
 		String question = driver.getTitle();
-		mainLoop(question);
+		return mainLoop(question);
 		
 		
 		
 			
 	}
 	
-	private void mainLoop(String question) {
+	//Main loop of the survey
+	private int mainLoop(String question) {
+		
+		String formerQuestion = "";
 		
 		try {
-			while (question != "Z2") {
+			
+			while (!question.equals("Thank You")) {
 				
+				formerQuestion = question;
 				log.info("Answering question in page " + question);			
-				answerQuestion(question);
-				question = driver.getTitle();
+				answerQuestion(question);				
+				question = driver.getTitle();				
+								
 			}			
-
+		
+			log.info("Finishing the survey with page " + question);	
 			driver.close();
+			return SUCCESS;
+			
 			
 			
 		} catch (UnhandledAlertException e) {
@@ -141,14 +153,25 @@ public class WalmartEngine implements SurveyInterface {
 			log.info("Handling alert (text): " + alert.getText());		
 			alert.accept();	
 			delay();			
-			question = driver.getTitle();		
+			question = driver.getTitle();
+			
+			//If the new page title is the same, we have problems
+			if (formerQuestion.equals(question)) {
+				log.info("The survey is repeating the page " + question);	
+				driver.close();
+				return FAILED;
+				
+			}
+			
 			mainLoop(question);
 			
-		}
+		}		
+		
+		return SUCCESS;
 		
 	}
 	
-	
+		
 	private void answerQuestion(String question) {
 		
 		//Add delay before answering each question
@@ -188,7 +211,7 @@ public class WalmartEngine implements SurveyInterface {
 		} else if (question.equals("A3")) {
 			
 			log.info("Entering NonScript-Pharm in page " + question);					
-			driver.findElement(By.xpath("//img[contains(@src, 'NonScript-Pharm_Gray.gif')]")).click();	
+			driver.findElement(By.xpath("//img[contains(@src, '/Surveys/WMCA/WMCASTrak/Images/Dept/NonScript-Pharm_Gray.gif')]")).click();	
 			
 		//Answer math challenge
 		} else if (question.equals("S3a")) {
@@ -315,14 +338,14 @@ public class WalmartEngine implements SurveyInterface {
 		
 	private void answerPostalCode(String question) {
 		
-		log.info("Entering " + surveyFields.getPostalCode() + " in page " + question);		
-		driver.findElement(By.id("Postal")).sendKeys(surveyFields.getPostalCode());
+		log.info("Entering " + surveyInputs.getPostalCode() + " in page " + question);		
+		driver.findElement(By.id("Postal")).sendKeys(surveyInputs.getPostalCode());
 	}
 	
 	private void answerBirthYear(String question) {
 		
-		log.info("Entering " + String.valueOf(surveyFields.getBirthYear()) + " in page " + question);
-		driver.findElement(By.id("S2")).sendKeys(String.valueOf(surveyFields.getBirthYear()));
+		log.info("Entering " + String.valueOf(surveyInputs.getBirthYear()) + " in page " + question);
+		driver.findElement(By.id("S2")).sendKeys(String.valueOf(surveyInputs.getBirthYear()));
 		driver.findElement(By.id("row_1_img")).click();
 	}
 	
@@ -346,11 +369,11 @@ public class WalmartEngine implements SurveyInterface {
 		delay();
 		
 		//Store NUmber
-		log.info("Entering " + surveyFields.getStoreNum() + " in page " + question);	
-		driver.findElement(By.name("storeNum")).sendKeys(surveyFields.getStoreNum());
+		log.info("Entering " + surveyInputs.getStoreNum() + " in page " + question);	
+		driver.findElement(By.name("storeNum")).sendKeys(surveyInputs.getStoreNum());
 		
 		//TC#
-		String tc = surveyFields.getTc();
+		String tc = surveyInputs.getTc();
 		log.info("Entering " + tc + " in page " + question);	
 		driver.findElement(By.name("TCNum1")).sendKeys(tc.substring(0, 4));
 		driver.findElement(By.name("TCNum2")).sendKeys(tc.substring(4, 8));
@@ -359,8 +382,8 @@ public class WalmartEngine implements SurveyInterface {
 		driver.findElement(By.name("TCNum5")).sendKeys(tc.substring(16));
 		
 		//date  mm/dd/yy
-		log.info("Entering " + surveyFields.getDate() + " in page " + question);	
-		String[] dateElements = surveyFields.getDate().split("/");
+		log.info("Entering " + surveyInputs.getDate() + " in page " + question);	
+		String[] dateElements = surveyInputs.getDate().split("/");
 		driver.findElement(By.name("month")).sendKeys(dateElements[0]);
 		driver.findElement(By.name("day")).sendKeys(dateElements[1]);
 		driver.findElement(By.name("year")).sendKeys(dateElements[2]);
@@ -368,7 +391,7 @@ public class WalmartEngine implements SurveyInterface {
 	
 	private void answerArrivalTime(String question) {
 		
-		String arrivalTime = setArrivalTime(surveyFields.getTime());
+		String arrivalTime = setArrivalTime(surveyInputs.getTime());
 		log.info("Entering " + arrivalTime + " in page " + question);		
 		for (WebElement option : driver.findElements(By.tagName("option"))) {
 			if (option.getText().equals(arrivalTime)) option.click();
@@ -379,14 +402,14 @@ public class WalmartEngine implements SurveyInterface {
 		
 		delay();
 		log.info("Filling form in page " + question);		
-		driver.findElement(By.name("FirstName")).sendKeys(surveyFields.getFirstName());
-		driver.findElement(By.name("LastName")).sendKeys(surveyFields.getLastName());
-		driver.findElement(By.name("Street")).sendKeys(surveyFields.getStreet());
-		driver.findElement(By.name("City")).sendKeys(surveyFields.getCity());
-		driver.findElement(By.name("Email")).sendKeys(surveyFields.getEmail());
-		driver.findElement(By.name("Phone1")).sendKeys(surveyFields.getPhone().substring(0, 3));
-		driver.findElement(By.name("Phone2")).sendKeys(surveyFields.getPhone().substring(3, 6));
-		driver.findElement(By.name("Phone3")).sendKeys(surveyFields.getPhone().substring(6));
+		driver.findElement(By.name("FirstName")).sendKeys(surveyInputs.getFirstName());
+		driver.findElement(By.name("LastName")).sendKeys(surveyInputs.getLastName());
+		driver.findElement(By.name("Street")).sendKeys(surveyInputs.getStreet());
+		driver.findElement(By.name("City")).sendKeys(surveyInputs.getCity());
+		driver.findElement(By.name("Email")).sendKeys(surveyInputs.getEmail());
+		driver.findElement(By.name("Phone1")).sendKeys(surveyInputs.getPhone().substring(0, 3));
+		driver.findElement(By.name("Phone2")).sendKeys(surveyInputs.getPhone().substring(3, 6));
+		driver.findElement(By.name("Phone3")).sendKeys(surveyInputs.getPhone().substring(6));
 		for (WebElement option : driver.findElements(By.tagName("option"))) {
 			if (option.getText().equals("Ontario")) option.click();	
 		}

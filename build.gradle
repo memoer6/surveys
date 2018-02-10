@@ -29,7 +29,7 @@ apply plugin: 'idea'
 
 jar {
 	baseName = 'surveys'
-	version =  '1.0.0'
+	version =  '1.0.1'
 }
 
 repositories {	
@@ -50,27 +50,32 @@ dependencies {
 	compile("org.seleniumhq.selenium:selenium-api:3.8.1")		
 	compile("org.seleniumhq.selenium:selenium-support:3.8.1")	
 	compile("org.seleniumhq.selenium:selenium-remote-driver:3.8.1")
+	
+	//Firebase cloud messaging
+	compile("com.google.api-client:google-api-client:1.23.0") 
 		
 }
+
 
 
 group = 'memoer6'
 
 // ./gradlew docker   (create image) 
+//  docker build -t memoer6/surveys:1.0.1 .
 docker {
     //image name
     name "${project.group}/${jar.baseName}:${jar.version}"   
     //location of jar file
-    files jar.archivePath
-    buildArgs(['JAR_FILE': "${jar.archiveName}"])
+    files jar.archivePath, 'src/main/resources/service-account.json'
+    buildArgs(['JAR_FILE': "${jar.archiveName}", 'ACC': "service-account.json"])
     dockerfile file('src/main/resources/Dockerfile')
     pull true    
 }
 
 // ./gradlew dockerRun   (create and run container. Not needed if using docker compose ) 
-// containers:
+// containers:	
 // docker network create --driver bridge isolated
-// docker run -d -p 9001:9001 --name surveys memoer6/surveys:1.0.0 
+// docker run -d -p 9001:9001 --name surveys memoer6/surveys:1.0.1  
 // docker run -d -p 4444:4444 -p 5900:5900 --name firefox -v /dev/shm:/dev/shm selenium/standalone-firefox-debug:3.8.1-dubnium	
 dockerRun {
 	name "${jar.baseName}"
