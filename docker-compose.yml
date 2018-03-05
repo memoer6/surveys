@@ -11,7 +11,7 @@ services:
       - "5900:5900"
         
   surveys:
-    image: memoer6/surveys:1.0.1
+    image: memoer6/surveys:1.1.0
     ports:
       - "9001:9001"   
     volumes: 

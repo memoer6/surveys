@@ -27,9 +27,6 @@ public class WalmartEngine implements SurveyInterface {
 	
 	private final static int MIN_DELAY = 8;
 	private final static int MAX_DELAY = 12;
-	// Result of the survey. Success or Failed
-	private int result;
-	
 	
 	private WebDriver driver;
 	private SurveyInputs surveyInputs;
@@ -137,7 +134,15 @@ public class WalmartEngine implements SurveyInterface {
 				formerQuestion = question;
 				log.info("Answering question in page " + question);			
 				answerQuestion(question);				
-				question = driver.getTitle();				
+				question = driver.getTitle();	
+				
+				//If the new page title is the same, we have problems
+				if (formerQuestion.equals(question)) {
+					log.info("The survey is repeating the page " + question);	
+					driver.close();
+					return FAILED;
+					
+				}
 								
 			}			
 		

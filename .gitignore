@@ -1,7 +1,9 @@
 *.log
-src/main/resources/*.properties
+src/main/resources/application-production.properties
 src/main/resources/service-account.json
+src/main/resources/application.properties
 
 /.gradle/
 /bin/
 /build/
+.gitignore

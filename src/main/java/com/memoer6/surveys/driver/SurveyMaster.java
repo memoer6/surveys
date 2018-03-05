@@ -33,17 +33,22 @@ public class SurveyMaster {
 		
 		this.surveyInputs = surveyInputs;
 		
-		//Normalize some fields before filling the survey
-		inputsAdapter();
-		
 		WebDriver driver = webdriverBuilder.getWebdriver();
-			
+		
+		String storeName = surveyInputs.getStoreName();
+		
+		//Normalize some fields before filling the survey
+		inputsAdapter(storeName);
 		
 		//Conduct the survey
-		String storeName = surveyInputs.getStoreName();
 		switch (storeName) {
-		case WalmartEngine.NAME:
+		case WalmartEngine.NAME:			
 			surveyResult = new WalmartEngine().fillSurvey(driver, surveyInputs);
+			break;
+			
+		case ShellEngine.NAME:			
+			surveyResult = new ShellEngine().fillSurvey(driver, surveyInputs);
+			break;	
 			
 		}
 		
@@ -51,14 +56,14 @@ public class SurveyMaster {
 		
 		//Send message via firebase cloud to inform the result
 		if (surveyResult == SurveyInterface.SUCCESS) {
-			messenger.sendMessage("the survey finished successfully");
+			messenger.sendMessage("the survey for " + storeName + " finished successfully");
 		} else {
-			messenger.sendMessage("the survey couldn't finish");
+			messenger.sendMessage("the survey for " + storeName + " couldn't finish");
 		}
 	}
 	
 	//Internal method to adapt the inputs before running the survey
-	private void inputsAdapter() {
+	private void inputsAdapter(String storeName) {
 		
 		//When a caret appears as the first character inside square brackets, it negates the pattern.
 		String pc = surveyInputs.getPostalCode().replaceAll("[^a-zA-Z0-9]+", ""); //remove any character except letters and numbers 
@@ -68,8 +73,28 @@ public class SurveyMaster {
 		surveyInputs.setPhone(ph);
 		
 		//Only Walmart
-		String tc = surveyInputs.getTc().replaceAll("\\s", ""); //remove all white spaces
-		surveyInputs.setTc(tc);
+		if (storeName.equals(WalmartEngine.NAME)) {
+			String tc = surveyInputs.getTc().replaceAll("\\s", ""); //remove all white spaces
+			surveyInputs.setTc(tc);
+		}
+		
+		//Only Shell
+		if (storeName.equals(ShellEngine.NAME)) {
+			
+			// Add 0 to time if it's one digit 
+			String time = surveyInputs.getTime();
+			if (time.split(":")[0].length() == 1) {
+				surveyInputs.setTime("0" + time);
+			}
+					
+			//change O by 0 in store number
+			String storenum = surveyInputs.getStoreNum();			
+			if (storenum.substring(1,2).equals("O")) {
+				surveyInputs.setStoreNum(storenum.substring(0,1) + "0" + storenum.substring(2));				
+			}
+						
+		}
+		
 		
 	}
 
