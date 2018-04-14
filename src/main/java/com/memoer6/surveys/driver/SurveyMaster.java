@@ -92,6 +92,16 @@ public class SurveyMaster {
 			if (storenum.substring(1,2).equals("O")) {
 				surveyInputs.setStoreNum(storenum.substring(0,1) + "0" + storenum.substring(2));				
 			}
+			
+			/**
+			// Remove leading 0 if day < 10 
+			String date = surveyInputs.getDate();
+			if (date.split("/")[1].startsWith("0")) {
+				StringBuilder sb = new StringBuilder(date);
+				sb.deleteCharAt(3);
+				surveyInputs.setDate(sb.toString());				
+			}
+			**/
 						
 		}
 		

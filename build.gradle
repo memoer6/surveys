@@ -29,7 +29,7 @@ apply plugin: 'idea'
 
 jar {
 	baseName = 'surveys'
-	version =  '1.1.0'
+	version =  '1.1.1'
 }
 
 repositories {	
@@ -60,6 +60,7 @@ dependencies {
 
 group = 'memoer6'
 
+// ./gradlew build (compile program)
 // ./gradlew docker   (create image) 
 //  docker build -t memoer6/surveys:1.0.1 .
 docker {

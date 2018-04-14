@@ -1,5 +1,7 @@
 package com.memoer6.surveys.driver;
 
+
+import java.util.Calendar;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 
@@ -36,10 +38,17 @@ public class ShellEngine implements SurveyInterface {
 		driver.findElement(By.id("s")).sendKeys(surveyInputs.getStoreNum());
 		
 		//date
-		String day = surveyInputs.getDate().split("/")[1];
 		driver.findElement(By.className("ui-datepicker-trigger")).click();
-		//driver.findElement(By.xpath("//a[contains(text(), '10')]")).click();
 		
+		//month
+		String currentMonth = String.valueOf(Calendar.getInstance().get(Calendar.MONTH)+1);
+		String month = surveyInputs.getDate().split("/")[0];
+		if (!month.equals(currentMonth)) {
+			driver.findElement(By.className("ui-datepicker-prev")).click();
+		}
+		
+		//day
+		String day = surveyInputs.getDate().split("/")[1];
 		driver.findElement(By.xpath("//a[contains(text(), '" + day + "')]")).click();
 		
 		//time - hour
@@ -98,6 +107,11 @@ public class ShellEngine implements SurveyInterface {
 		
 		//few more questions
 		driver.findElement(By.xpath("//label[contains(text(), 'go to Shell because I am an AIR MILES')]//preceding::span[1]")).click();
+		try {
+			driver.findElement(By.xpath("//label[contains(text(), 'Once a week')]//preceding::span[1]")).click();
+		} catch(org.openqa.selenium.NoSuchElementException e) {
+			log.info("No question for 'once a week'");
+		}	
 		enter("12");
 		
 		//What type of fuel did you purchase on this visit?
@@ -122,8 +136,13 @@ public class ShellEngine implements SurveyInterface {
 		driver.findElement(By.id("S093500")).sendKeys(surveyInputs.getEmail());
 		enter("16");
 		
-		driver.close();		
-		return SUCCESS;
+		if (driver.findElements(By.className("FinishHeader")).size() > 0) {
+			driver.close();		
+			return SUCCESS;
+		} else {
+			return FAILED;
+		}
+		
 		
 	}
 	

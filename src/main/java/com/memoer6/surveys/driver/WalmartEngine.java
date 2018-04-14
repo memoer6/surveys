@@ -170,7 +170,11 @@ public class WalmartEngine implements SurveyInterface {
 			
 			mainLoop(question);
 			
-		}		
+		} catch (org.openqa.selenium.NoSuchElementException e) {
+			log.info("No Such element location in " + question);	
+			driver.close();
+			return FAILED;			
+		}
 		
 		return SUCCESS;
 		
